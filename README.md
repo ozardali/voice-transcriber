@@ -28,10 +28,12 @@ This works because the model also tells us when each word starts and ends. The t
 
 ## What you need
 
-- Linux (tested on CachyOS with KDE). It should also work on other Linux systems.
+- Linux (tested on CachyOS with KDE) or macOS. On a Mac it always runs on the CPU.
 - Python 3.10 or newer
 - `ffmpeg`
 - Optional: an NVIDIA graphics card. Without one, it still works on the CPU, just slower.
+
+You don't have to install Python or ffmpeg yourself. If they're missing, `./start.sh` tells you what it will install and asks first. It uses Homebrew on macOS (and offers to install Homebrew too), and pacman, apt, dnf or zypper on Linux.
 
 ## Getting started
 
@@ -51,7 +53,9 @@ To stop it, press `Ctrl+C` in the terminal.
 ./install-shortcut.sh
 ```
 
-This adds a **Voice Transcriber** icon to your app menu and your desktop. Click it and the app starts in the background and opens in your browser. If the app is already running, the icon just opens the page again.
+This adds a **Voice Transcriber** icon to your app menu and your desktop. On macOS it creates `~/Applications/Voice Transcriber.app`, which you can find with Spotlight or Launchpad, or drag to the Dock. Click it and the app starts in the background and opens in your browser. If the app is already running, the icon just opens the page again.
+
+If Python or ffmpeg is still missing, the icon opens a terminal instead and runs `./start.sh` there, so it can ask before installing anything.
 
 When you start it this way there is no terminal, so use the **Quit** button on the page to stop it. The app writes its log to `app.log`.
 
@@ -102,6 +106,7 @@ The CUDA libraries go into `.venv` only. You don't need to install CUDA on your 
 | `start.sh` | Installs on the first run, then starts the app in the terminal. |
 | `launch.sh` | Starts the app in the background. The desktop icon uses this. |
 | `install-shortcut.sh` | Adds the icon to your app menu and desktop. |
+| `assets/` | The app icon. `AppIcon.icon` is the layered macOS version (light, dark, tinted and clear), `icon.svg` is for Linux. After changing the design, run `assets/build-icons.sh` (macOS with Xcode) to rebuild `Assets.car` and `icon.icns`. |
 | `requirements.txt` | Python packages. |
 | `requirements-gpu.txt` | Extra packages for NVIDIA GPUs. |
 
