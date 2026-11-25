@@ -2,3 +2,6 @@
 __pycache__/
 app.log
 .DS_Store
+models/
+.build/
+dist/

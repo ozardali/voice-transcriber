@@ -29,7 +29,7 @@ notify() {
   fi
 }
 
-# --- system dependencies: ffmpeg and Python 3.10+ ---------------------------
+# --- system dependency: Python 3.10+ ----------------------------------------
 
 find_python() {
   local p
@@ -45,7 +45,6 @@ find_python() {
 
 find_missing() {
   missing=()
-  command -v ffmpeg >/dev/null 2>&1 || missing+=(ffmpeg)
   if [ ! -x .venv/bin/python ] && ! find_python >/dev/null; then
     missing+=(python)
   fi
@@ -71,7 +70,7 @@ install_system_deps() {
         fi
       fi
       for m in "${missing[@]}"; do
-        case "$m" in ffmpeg) pkgs+=(ffmpeg) ;; python) pkgs+=(python@3.12) ;; esac
+        case "$m" in python) pkgs+=(python@3.12) ;; esac
       done
       cmd=(brew install "${pkgs[@]}")
       ;;
@@ -80,17 +79,17 @@ install_system_deps() {
         cmd=(sudo pacman -S --needed --noconfirm "${missing[@]}")
       elif command -v apt-get >/dev/null 2>&1; then
         for m in "${missing[@]}"; do
-          case "$m" in ffmpeg) pkgs+=(ffmpeg) ;; python) pkgs+=(python3 python3-venv) ;; esac
+          case "$m" in python) pkgs+=(python3 python3-venv) ;; esac
         done
         cmd=(sudo apt-get install -y "${pkgs[@]}")
       elif command -v dnf >/dev/null 2>&1; then
         for m in "${missing[@]}"; do
-          case "$m" in ffmpeg) pkgs+=(ffmpeg-free) ;; python) pkgs+=(python3) ;; esac
+          case "$m" in python) pkgs+=(python3) ;; esac
         done
         cmd=(sudo dnf install -y "${pkgs[@]}")
       elif command -v zypper >/dev/null 2>&1; then
         for m in "${missing[@]}"; do
-          case "$m" in ffmpeg) pkgs+=(ffmpeg) ;; python) pkgs+=(python3) ;; esac
+          case "$m" in python) pkgs+=(python3) ;; esac
         done
         cmd=(sudo zypper install -y "${pkgs[@]}")
       fi
@@ -108,7 +107,6 @@ install_system_deps() {
     echo "Run that command yourself, then run ./start.sh again."
     exit 1
   fi
-  command -v ffmpeg >/dev/null 2>&1 || { echo "ffmpeg still not found."; exit 1; }
 }
 
 # --- Python packages ---------------------------------------------------------
@@ -201,7 +199,7 @@ EOF
   local entry="[Desktop Entry]
 Type=Application
 Name=Voice Transcriber
-Comment=Turn voice messages into English text, locally
+Comment=Turn voice messages into text, locally
 Exec=\"$DIR/start.sh\" --launch
 Icon=$DIR/assets/icon.svg
 Terminal=false
@@ -218,6 +216,12 @@ Categories=AudioVideo;Utility;"
 
 setup_shortcut() {
   local f
+  if [ "$OS" = Darwin ]; then
+    # the downloaded app (from the .dmg) is installed: leave it alone
+    for f in "/Applications/$MAC_NAME" "$HOME/Applications/$MAC_NAME"; do
+      [ -d "$f" ] && [ ! -f "$f/Contents/MacOS/launcher" ] && return 0
+    done
+  fi
   if f="$(shortcut_file)"; then
     # the folder was moved, or the icon is from an older version
     grep -qF "\"$DIR/start.sh\" --launch" "$f" || install_shortcut
