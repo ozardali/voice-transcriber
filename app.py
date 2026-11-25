@@ -29,6 +29,124 @@ def data_dir() -> Path:
 
 
 DATA = data_dir()
+HOST = "127.0.0.1"
+PORT = int(os.environ.get("PORT", "7860"))
+URL = f"http://{HOST}:{PORT}"
+CLEAN_EXIT = "--- clean exit ---"
+_crash_log = None
+
+
+def show_error(message: str) -> None:
+    """A packaged app has no terminal, so show problems in a message box (Windows)."""
+    print(message)
+    if FROZEN and sys.platform == "win32":
+        import ctypes
+
+        # 0x10: error icon, 0x10000: bring to the front. Ctrl+C copies the text.
+        ctypes.windll.user32.MessageBoxW(None, message, "Voice Transcriber", 0x10 | 0x10000)
+
+
+def quit_app(code: int = 0) -> None:
+    if _crash_log is not None:
+        _crash_log.write(f"\n{CLEAN_EXIT}\n")
+        _crash_log.flush()
+    os._exit(code)
+
+
+def hand_over_to_running(url: str) -> bool:
+    """If the app is already running, bring it to the front and return True."""
+    import urllib.error
+    import urllib.request
+
+    try:
+        urllib.request.urlopen(f"{url}/api/models", timeout=1)
+    except OSError:
+        return False  # nothing running
+    show = urllib.request.Request(f"{url}/api/show", method="POST",
+                                  headers={"X-Voice-Transcriber": "1"})
+    try:
+        urllib.request.urlopen(show, timeout=3)
+        return True  # its window came to the front
+    except urllib.error.HTTPError as e:
+        if e.code == 409:  # running without a window: open it in the browser
+            webbrowser.open(url)
+            return True
+    except OSError:
+        pass
+    return False
+
+
+CHILD_ENV = "VOICE_TRANSCRIBER_CHILD"
+# common Windows exit codes of a process that died hard
+EXIT_CODES = {
+    1: "Python error",
+    0xC0000005: "access violation (crash in native code)",
+    0xC0000135: "a required DLL was not found",
+    0xE0434352: "unhandled .NET error",
+}
+
+
+def supervise() -> None:
+    """Windows: run the app as a child process and report it if it dies.
+
+    Some failures (a DLL or CPU problem, a .NET error in the app window) end the
+    process before it can show anything, so this small parent, which loads nothing
+    heavy, watches it. If the app window is what crashed, it starts the app again
+    in the browser.
+    """
+    env = dict(os.environ, **{CHILD_ENV: "1"})
+
+    def read(name: str) -> str:
+        try:
+            return (DATA / name).read_text(encoding="utf-8", errors="replace").strip()[-1500:]
+        except OSError:
+            return "(none)"
+
+    while True:
+        started = time.time()
+        try:
+            code = subprocess.call([sys.executable, *sys.argv[1:]], env=env)
+        except OSError as e:
+            show_error(f"Voice Transcriber could not start the app process:\n{e}")
+            sys.exit(1)
+        code &= 0xFFFFFFFF
+        crash = read("crash.log")
+        if code == 0 and CLEAN_EXIT in crash:
+            sys.exit(0)
+        log = read("app.log")
+        details = (f"Exit code: 0x{code:08X} ({EXIT_CODES.get(code, 'unknown')}) "
+                   f"after {time.time() - started:.1f} s\n\n"
+                   f"--- crash.log ---\n{crash}\n\n--- app.log ---\n{log}")
+        if env.get("NO_WINDOW") != "1" and "Opening the app window" in log and "App window shown" not in log:
+            # say why, but don't wait for OK: the app comes up in the browser meanwhile
+            threading.Thread(target=show_error, args=(
+                "The app window could not be opened, so Voice Transcriber opens in your "
+                "browser instead. To report it, send a photo of this message.\n\n" + details,)).start()
+            env["NO_WINDOW"] = "1"
+            continue
+        show_error("Voice Transcriber stopped unexpectedly. Please send a photo of this message "
+                   "(or press Ctrl+C here and paste it).\n\n" + details)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    is_child = os.environ.get(CHILD_ENV) == "1"
+    # Before the heavy imports below: a second copy only brings up the first one
+    if not is_child and hand_over_to_running(URL):
+        sys.exit()
+    if FROZEN and sys.platform == "win32" and not is_child:
+        supervise()
+    if FROZEN:
+        # A windowed app has no terminal, so a hard crash (e.g. in a DLL) would leave
+        # no trace. faulthandler records those in crash.log, which supervise() shows.
+        import faulthandler
+
+        DATA.mkdir(parents=True, exist_ok=True)
+        _crash_log = open(DATA / "crash.log", "w", encoding="utf-8")  # noqa: SIM115
+        faulthandler.enable(_crash_log)
+        # keep the output in a log file (also covers the imports below)
+        sys.stdout = sys.stderr = open(DATA / "app.log", "w", buffering=1, encoding="utf-8")
+        print(f"Starting {sys.executable} (Python {sys.version.split()[0]}, {sys.platform})")
 
 
 def _use_bundled_cuda_libs():
@@ -59,10 +177,8 @@ from faster_whisper import WhisperModel  # noqa: E402
 from faster_whisper.tokenizer import _LANGUAGE_CODES  # noqa: E402
 from flask import Flask, jsonify, request, send_from_directory  # noqa: E402
 
-HOST = "127.0.0.1"
 # from source: next to the code, so deleting the folder removes everything
 MODELS_DIR = DATA / "models"
-PORT = int(os.environ.get("PORT", "7860"))
 SAMPLE_RATE = 16000
 
 # Same three choices for every language. English has its own models, which are
@@ -328,7 +444,7 @@ def api_quit():
     # custom header forces a CORS preflight, so other sites can't call this
     if request.headers.get("X-Voice-Transcriber") != "1":
         return jsonify({"error": "Forbidden"}), 403
-    threading.Timer(0.3, lambda: os._exit(0)).start()
+    threading.Timer(0.3, quit_app).start()
     return jsonify({"ok": True})
 
 
@@ -343,6 +459,22 @@ def wait_for_server(url: str, timeout: float = 15) -> None:
             time.sleep(0.1)
 
 
+def watch_dotnet_errors() -> None:
+    """Windows: write an unhandled .NET error to the log before it ends the process."""
+    if sys.platform != "win32":
+        return
+    try:
+        import clr  # noqa: F401 - pythonnet, used by pywebview
+        from System import AppDomain
+
+        def on_error(_sender, e):
+            print(f".NET error: {e.ExceptionObject}", flush=True)
+
+        AppDomain.CurrentDomain.UnhandledException += on_error
+    except Exception as e:  # noqa: BLE001
+        print(f"Can't watch .NET errors: {e}")
+
+
 def run_window(url: str) -> bool:
     """Show the page in its own app window. Returns False if that isn't possible."""
     try:
@@ -350,59 +482,46 @@ def run_window(url: str) -> bool:
     except ImportError as e:
         print(f"No app window ({e}), using the browser instead.")
         return False
+    watch_dotnet_errors()
     wait_for_server(url)
+    print("Opening the app window...")
     _window["win"] = webview.create_window(
         "Voice Transcriber", url, width=1180, height=820, min_size=(720, 520))
+    shown = threading.Event()
+
+    def on_shown():
+        print("App window shown.")
+        shown.set()
+
+    _window["win"].events.shown += on_shown
     try:
-        webview.start(icon=str(RESOURCES / "assets" / "icon.svg"))
+        # Windows can't read an SVG icon (a .NET error that ends the process) and
+        # uses the icon in the exe anyway
+        webview.start(icon=None if sys.platform == "win32" else str(RESOURCES / "assets" / "icon.svg"))
     except Exception as e:  # e.g. missing GUI libraries on Linux
         print(f"App window failed ({e}), using the browser instead.")
+        _window["win"] = None
+        return False
+    if not shown.is_set():
+        # start() returned without ever showing the window (e.g. WebView2 failed
+        # on Windows). Don't quit silently: fall back to the browser.
+        print("App window never appeared, using the browser instead.")
         _window["win"] = None
         return False
     return True
 
 
-def hand_over_to_running(url: str) -> bool:
-    """If the app is already running, bring it to the front and return True."""
-    import urllib.error
-    import urllib.request
-
-    try:
-        urllib.request.urlopen(f"{url}/api/models", timeout=1)
-    except OSError:
-        return False  # nothing running
-    show = urllib.request.Request(f"{url}/api/show", method="POST",
-                                  headers={"X-Voice-Transcriber": "1"})
-    try:
-        urllib.request.urlopen(show, timeout=3)
-        return True  # its window came to the front
-    except urllib.error.HTTPError as e:
-        if e.code == 409:  # running without a window: open it in the browser
-            webbrowser.open(url)
-            return True
-    except OSError:
-        pass
-    return False
-
-
 if __name__ == "__main__":
-    url = f"http://{HOST}:{PORT}"
-    if hand_over_to_running(url):
-        sys.exit()
-    if FROZEN:
-        # a packaged app has no terminal, so keep the output in a log file.
-        # Only now: a second copy that just hands over must not wipe the log.
-        DATA.mkdir(parents=True, exist_ok=True)
-        sys.stdout = sys.stderr = open(DATA / "app.log", "w", buffering=1, encoding="utf-8")
-    print(f"Voice Transcriber: {url}")
+    print(f"Voice Transcriber: {URL}")
     if os.environ.get("NO_BROWSER") == "1":  # server only
         app.run(host=HOST, port=PORT, threaded=True)
-        sys.exit()
+        quit_app()
 
     threading.Thread(
         target=lambda: app.run(host=HOST, port=PORT, threaded=True, use_reloader=False),
         daemon=True).start()
-    if os.environ.get("NO_WINDOW") != "1" and run_window(url):
-        os._exit(0)  # window closed: quit the app
-    webbrowser.open(url)
+    if os.environ.get("NO_WINDOW") != "1" and run_window(URL):
+        quit_app()  # window closed: quit the app
+    if not webbrowser.open(URL):
+        show_error(f"Could not open the app window or a browser.\nOpen {URL} in your browser.")
     threading.Event().wait()  # keep serving until Quit or Ctrl+C

@@ -41,7 +41,8 @@ jobs:
           foreach ($i in 1..60) {
             try { Invoke-RestMethod http://127.0.0.1:7860/api/models | Out-Null; $ok = $true; break } catch { Start-Sleep 1 }
           }
-          Stop-Process $p -Force -ErrorAction SilentlyContinue
+          # the exe watches a child copy of itself, so stop both
+          Stop-Process -Name "Voice Transcriber" -Force -ErrorAction SilentlyContinue
           if (-not $ok) { Get-Content "$env:LOCALAPPDATA\Voice Transcriber\app.log" -ErrorAction SilentlyContinue; throw "The app did not start" }
       - uses: actions/upload-artifact@v7
         with:
