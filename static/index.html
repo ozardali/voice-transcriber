@@ -4,21 +4,37 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Voice Transcriber</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%232f6f5e'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round'%3E%3Crect x='9.5' y='5' width='5' height='9' rx='2.5'/%3E%3Cpath d='M7 11.5a5 5 0 0 0 10 0M12 16.5v2.5'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Cstyle%3E.a%7Bstop-color:%238a6cff%7D.b%7Bstop-color:%233426a8%7D.w%7Bfill:%23fff%7D.t%7Bfill:%23fff%3Bfill-opacity:.92%7D%40media (prefers-color-scheme:dark)%7B.a%7Bstop-color:%232e2650%7D.b%7Bstop-color:%23120e22%7D.w%7Bfill:%23b7a6ff%7D.t%7Bfill:%23e6e0ff%3Bfill-opacity:1%7D%7D%3C/style%3E%3ClinearGradient id='g' x1='.3' y1='0' x2='.7' y2='1'%3E%3Cstop class='a'/%3E%3Cstop offset='1' class='b'/%3E%3C/linearGradient%3E%3Crect width='1024' height='1024' rx='230' fill='url(%23g)'/%3E%3Cg class='w'%3E%3Crect x='130' y='431' width='47' height='162' rx='24'/%3E%3Crect x='205' y='344' width='47' height='336' rx='24'/%3E%3Crect x='280' y='251' width='47' height='522' rx='24'/%3E%3Crect x='354' y='326' width='47' height='373' rx='24'/%3E%3Crect x='429' y='406' width='47' height='211' rx='24'/%3E%3C/g%3E%3Cg class='t'%3E%3Crect x='541' y='324' width='360' height='47' rx='24'/%3E%3Crect x='541' y='434' width='298' height='47' rx='24'/%3E%3Crect x='541' y='543' width='360' height='47' rx='24'/%3E%3Crect x='541' y='652' width='211' height='47' rx='24'/%3E%3C/g%3E%3C/svg%3E">
+<script>
+  try { const t = localStorage.getItem("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}
+</script>
 <style>
+  /* Light by default. Dark when the system is dark (unless "Light" is picked)
+     or when "Dark" is picked. The two dark blocks must stay the same. */
   :root {
-    --bg: #f6f5f2; --panel: #efede8; --card: #ffffff; --text: #1d1c1a; --muted: #6b6862;
-    --line: #e3e0da; --accent: #2f6f5e; --accent-soft: #e4efeb; --on-accent: #ffffff;
-    --sentence: #fbf3d9; --word: #f1d77a; --err: #b3261e;
+    --bg: #f6f5fa; --panel: #efedf6; --card: #ffffff; --text: #1c1a24; --muted: #6a6778;
+    --line: #e3e0ec; --accent: #4b3bd6; --accent-soft: #ebe8fc; --on-accent: #ffffff;
+    --sentence: #efebff; --word: #d6ccff; --err: #b3261e;
+    /* app icon colours (same as assets/AppIcon.icon) */
+    --logo-a: #8a6cff; --logo-b: #3426a8; --logo-wave: #ffffff; --logo-text: rgb(255 255 255 / .92);
     --radius: 12px;
-    color-scheme: light dark;
+    color-scheme: light;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #141413; --panel: #1a1a19; --card: #1f1f1d; --text: #ecebe8; --muted: #9d9a94;
-      --line: #32312e; --accent: #6cc2a8; --accent-soft: #1f3530; --on-accent: #10201b;
-      --sentence: #3a3421; --word: #7a6520; --err: #f2b8b5;
+    :root:not([data-theme="light"]) {
+      --bg: #131219; --panel: #18171f; --card: #1e1d27; --text: #ecebf3; --muted: #9c99ab;
+      --line: #312f3d; --accent: #a796ff; --accent-soft: #272143; --on-accent: #160f33;
+      --sentence: #2b2547; --word: #4c3f92; --err: #f2b8b5;
+      --logo-a: #2e2650; --logo-b: #120e22; --logo-wave: #b7a6ff; --logo-text: #e6e0ff;
+      color-scheme: dark;
     }
+  }
+  :root[data-theme="dark"] {
+    --bg: #131219; --panel: #18171f; --card: #1e1d27; --text: #ecebf3; --muted: #9c99ab;
+    --line: #312f3d; --accent: #a796ff; --accent-soft: #272143; --on-accent: #160f33;
+    --sentence: #2b2547; --word: #4c3f92; --err: #f2b8b5;
+    --logo-a: #2e2650; --logo-b: #120e22; --logo-wave: #b7a6ff; --logo-text: #e6e0ff;
+    color-scheme: dark;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -55,10 +71,12 @@
   /* sidebar */
   .brand { display: flex; align-items: center; gap: 12px; }
   .logo {
-    width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; flex: none;
-    background: var(--accent); color: var(--on-accent);
+    width: 40px; height: 40px; border-radius: 22.5%; flex: none; overflow: hidden;
+    box-shadow: 0 1px 3px rgb(0 0 0 / .18), inset 0 0 0 1px rgb(255 255 255 / .08);
   }
-  .logo svg { width: 21px; height: 21px; }
+  .logo svg { display: block; width: 100%; height: 100%; }
+  .logo .a { stop-color: var(--logo-a); } .logo .b { stop-color: var(--logo-b); }
+  .logo .w { fill: var(--logo-wave); } .logo .t { fill: var(--logo-text); }
   .brand h1 { font-size: 18px; margin: 0; letter-spacing: -0.01em; line-height: 1.2; }
   .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
 
@@ -182,7 +200,7 @@
   <aside>
     <div class="brand">
       <span class="logo" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        <svg viewBox="0 0 1024 1024"><linearGradient id="logo-bg" x1=".3" y1="0" x2=".7" y2="1"><stop class="a"/><stop offset="1" class="b"/></linearGradient><rect width="1024" height="1024" fill="url(#logo-bg)"/><g class="w"><rect x="130" y="431" width="47" height="162" rx="24"/><rect x="205" y="344" width="47" height="336" rx="24"/><rect x="280" y="251" width="47" height="522" rx="24"/><rect x="354" y="326" width="47" height="373" rx="24"/><rect x="429" y="406" width="47" height="211" rx="24"/></g><g class="t"><rect x="541" y="324" width="360" height="47" rx="24"/><rect x="541" y="434" width="298" height="47" rx="24"/><rect x="541" y="543" width="360" height="47" rx="24"/><rect x="541" y="652" width="211" height="47" rx="24"/></g></svg>
       </span>
       <div>
         <h1>Voice Transcriber</h1>
@@ -216,6 +234,15 @@
           <span>or click to choose. Several at once is fine.</span>
         </div>
       </label>
+    </section>
+
+    <section>
+      <p class="label" id="theme-label">Appearance</p>
+      <div class="seg" role="radiogroup" aria-labelledby="theme-label">
+        <label><input type="radio" name="theme" value="auto"> Auto</label>
+        <label><input type="radio" name="theme" value="light"> Light</label>
+        <label><input type="radio" name="theme" value="dark"> Dark</label>
+      </div>
     </section>
 
     <div class="sidebar-foot">
@@ -624,6 +651,17 @@ document.addEventListener("keydown", (ev) => {
   if (!last) return;
   ev.preventDefault();
   last.audio.paused ? playOnly(last) : last.audio.pause();
+});
+
+// appearance: auto follows the system
+const themeNow = document.documentElement.dataset.theme || "auto";
+document.querySelectorAll('input[name="theme"]').forEach((r) => {
+  r.checked = r.value === themeNow;
+  r.addEventListener("change", () => {
+    if (r.value === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = r.value;
+    try { localStorage.setItem("theme", r.value); } catch {}
+  });
 });
 
 $("quit").addEventListener("click", async () => {
