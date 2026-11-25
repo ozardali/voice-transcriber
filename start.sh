@@ -199,7 +199,7 @@ EOF
   local entry="[Desktop Entry]
 Type=Application
 Name=Voice Transcriber
-Comment=Turn voice messages into text, locally
+Comment=Turn audio and video into text, locally
 Exec=\"$DIR/start.sh\" --launch
 Icon=$DIR/assets/icon.svg
 Terminal=false

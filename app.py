@@ -1,4 +1,4 @@
-"""Local voice message transcriber (faster-whisper + Flask)."""
+"""Local speech-to-text for audio and video files (faster-whisper + Flask)."""
 
 from __future__ import annotations
 

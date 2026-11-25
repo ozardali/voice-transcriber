@@ -1,20 +1,27 @@
 # Voice Transcriber
 
-**Offline speech-to-text for voice messages.** A small app that transcribes WhatsApp voice messages and other audio files to text, using OpenAI's Whisper speech recognition model (through faster-whisper). It understands about 100 languages, like English, Turkish, German or Spanish. You drag an audio file into the app and get the text back in a few seconds.
+**Offline speech-to-text for any audio.** A small app that turns voice messages, recordings, meetings, interviews, lectures, podcasts and other audio or video files into text, using OpenAI's Whisper speech recognition model (through faster-whisper). It understands about 100 languages, like English, Turkish, German or Spanish. You drag a file into the app and get the text back, with the words highlighted as you play it.
 
-Everything runs on your own computer, on macOS or Linux. Your audio is never uploaded anywhere. The internet is only used once, to download a model the first time you use it.
+Everything runs on your own computer, on Windows, macOS or Linux. Your audio is never uploaded anywhere. The internet is only used once, to download a model the first time you use it.
 
-It's handy for long voice messages that you'd rather read than listen to.
+It's handy whenever you'd rather read than listen: a long voice message from a friend, notes from a meeting, or a quote you need from an interview.
+
+![Dropping three voice messages into Voice Transcriber, then playing one while the text is highlighted](docs/demo.gif)
 
 ## What it does
 
-- Drag one or more audio files onto the page (.ogg, .opus, .m4a, .mp3, .wav and more).
+- Drag one or more audio or video files onto the page (.ogg, .opus, .m4a, .mp3, .wav, .mp4 and more).
 - Pick the language, or let the app detect it.
 - Pick one of three models: fast, balanced or best. Turn on speed boost for quicker results.
 - Run on your graphics card (GPU) or on the processor (CPU).
 - See every transcript in a numbered list. You can collapse items, remove them, copy the text or save it as a .txt file.
 - Play the audio right inside the list. The text follows along as it plays.
 - Each result shows how long it took, so you can compare models and GPU vs CPU.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <img alt="Voice Transcriber with three transcribed voice messages. The first one is playing and the sentence being heard is highlighted." src="docs/screenshot-light.png">
+</picture>
 
 ## Listening along
 
@@ -31,8 +38,9 @@ This works because the model also tells us when each word starts and ends. The t
 
 Ready-made apps, nothing else to install:
 
-- **macOS** (Apple Silicon): `Voice-Transcriber-<version>-mac-arm64.dmg`. Open it and drag **Voice Transcriber** to Applications.
 - **Windows** (64-bit): `Voice-Transcriber-<version>-windows-x64-setup.exe`. Run it to install. No administrator rights needed.
+- **macOS** (Apple Silicon): `Voice-Transcriber-<version>-mac-arm64.dmg`. Open it and drag **Voice Transcriber** to Applications.
+- **Linux**: there is no ready-made app yet. [Run it from the source code](#run-from-the-source-code), which takes one command.
 
 Get them from the [Releases](https://github.com/ozardali/voice-transcriber/releases) page.
 
@@ -41,13 +49,15 @@ The apps aren't signed with a paid Apple or Microsoft certificate yet, so the fi
 - **macOS:** "Apple could not verify…". Click **Done**, then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to Voice Transcriber.
 - **Windows:** "Windows protected your PC". Click **More info**, then **Run anyway**.
 
-In the apps, models download to `~/Library/Application Support/Voice Transcriber` (macOS) or `%LOCALAPPDATA%\Voice Transcriber` (Windows). The Windows uninstaller removes that folder too. The Windows app runs on the CPU; for an NVIDIA GPU, run it from the source code on Linux.
+In the apps, models download to `%LOCALAPPDATA%\Voice Transcriber` (Windows) or `~/Library/Application Support/Voice Transcriber` (macOS). The log files `app.log` and `crash.log` are there too. The Windows uninstaller removes that folder. The Windows app runs on the CPU; for an NVIDIA GPU, run it from the source code on Linux.
+
+If the Windows app stops unexpectedly, it shows a message with the error and the end of its log. Press `Ctrl+C` in that message to copy the text, and paste it into an [issue](https://github.com/ozardali/voice-transcriber/issues). If its window can't open, the app opens in your browser instead.
 
 ## Run from the source code
 
 ### What you need
 
-- Linux (tested on CachyOS with KDE) or macOS. On a Mac it always runs on the CPU.
+- Linux (tested on CachyOS with KDE) or macOS. On a Mac it always runs on the CPU. On Windows, use the [installer](#download).
 - Python 3.10 or newer
 - Optional: an NVIDIA graphics card. Without one, it still works on the CPU, just slower.
 
@@ -139,9 +149,10 @@ The CUDA libraries go into `.venv` only. You don't need to install CUDA on your 
 | `static/style.css` | How it looks, with the light and dark colors at the top. |
 | `static/app.js` | What it does: language picker, queue, player and word highlighting. |
 | `start.sh` | The only script you run. It installs what's missing, adds the icon and starts the app. The icon runs it as `start.sh --launch`. |
-| `assets/` | The app icon. `AppIcon.icon` is the layered macOS version (light, dark, tinted and clear), `icon.svg` is for Linux. After changing the design, run `assets/build-icons.sh` (macOS with Xcode) to rebuild `Assets.car` and `icon.icns`. |
+| `assets/` | The app icon. `AppIcon.icon` is the layered macOS version (light, dark, tinted and clear), `icon.ico` is for Windows, `icon.svg` is for Linux. After changing the design, run `assets/build-icons.sh` (macOS with Xcode) to rebuild `Assets.car` and `icon.icns`. |
 | `requirements.txt` | Python packages. |
 | `requirements-gpu.txt` | Extra packages for NVIDIA GPUs. |
+| `docs/` | The screenshots and the animation in this README. |
 | `packaging/` | Builds the macOS and Windows apps (see below). |
 | `.github/workflows/build.yml` | Builds both apps on GitHub. |
 | `LICENSE` | MIT license. |

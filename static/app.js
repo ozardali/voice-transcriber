@@ -300,7 +300,7 @@ function removeJob(job) {
 function updateList() {
   $("list-head").hidden = jobs.length === 0;
   $("drop").classList.toggle("compact", jobs.length > 0);
-  $("drop-title").textContent = jobs.length ? "Add more voice messages" : "Drop voice messages here";
+  $("drop-title").textContent = jobs.length ? "Add more files" : "Drop audio or video files here";
   $("tools").hidden = jobs.length === 0;
   $("count").textContent = jobs.length ? ` · ${jobs.length}` : "";
   const allCollapsed = jobs.length > 0 && jobs.every((j) => j.card.classList.contains("collapsed"));
