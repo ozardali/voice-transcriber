@@ -197,6 +197,26 @@ def api_transcribe():
         os.unlink(tmp_path)
 
 
+_window = {"win": None}
+
+
+@app.post("/api/show")
+def api_show():
+    # used by launch.sh when the app is already running
+    if request.headers.get("X-Voice-Transcriber") != "1":
+        return jsonify({"error": "Forbidden"}), 403
+    win = _window["win"]
+    if win is None:
+        return jsonify({"error": "No app window"}), 409
+    win.restore()
+    win.show()
+    if sys.platform == "darwin":
+        from AppKit import NSApp
+        from PyObjCTools import AppHelper
+        AppHelper.callAfter(lambda: NSApp.activateIgnoringOtherApps_(True))
+    return jsonify({"ok": True})
+
+
 @app.post("/api/quit")
 def api_quit():
     # custom header forces a CORS preflight, so other sites can't call this
@@ -206,9 +226,47 @@ def api_quit():
     return jsonify({"ok": True})
 
 
+def wait_for_server(url: str, timeout: float = 15) -> None:
+    import urllib.request
+    end = time.time() + timeout
+    while time.time() < end:
+        try:
+            urllib.request.urlopen(f"{url}/api/models", timeout=1)
+            return
+        except OSError:
+            time.sleep(0.1)
+
+
+def run_window(url: str) -> bool:
+    """Show the page in its own app window. Returns False if that isn't possible."""
+    try:
+        import webview
+    except ImportError as e:
+        print(f"No app window ({e}), using the browser instead.")
+        return False
+    wait_for_server(url)
+    _window["win"] = webview.create_window(
+        "Voice Transcriber", url, width=1180, height=820, min_size=(720, 520))
+    try:
+        webview.start(icon=str(Path(__file__).parent / "assets" / "icon.svg"))
+    except Exception as e:  # e.g. missing GUI libraries on Linux
+        print(f"App window failed ({e}), using the browser instead.")
+        _window["win"] = None
+        return False
+    return True
+
+
 if __name__ == "__main__":
     url = f"http://{HOST}:{PORT}"
     print(f"Voice Transcriber: {url}")
-    if os.environ.get("NO_BROWSER") != "1":
-        threading.Timer(1.0, lambda: webbrowser.open(url)).start()
-    app.run(host=HOST, port=PORT, threaded=True)
+    if os.environ.get("NO_BROWSER") == "1":  # server only
+        app.run(host=HOST, port=PORT, threaded=True)
+        sys.exit()
+
+    threading.Thread(
+        target=lambda: app.run(host=HOST, port=PORT, threaded=True, use_reloader=False),
+        daemon=True).start()
+    if os.environ.get("NO_WINDOW") != "1" and run_window(url):
+        os._exit(0)  # window closed: quit the app
+    webbrowser.open(url)
+    threading.Event().wait()  # keep serving until Quit or Ctrl+C

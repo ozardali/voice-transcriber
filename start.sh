@@ -110,10 +110,45 @@ if [ ! -x .venv/bin/python ]; then
   PY="$(find_python)" || { echo "Python 3.10 or newer still not found."; exit 1; }
   echo "First run: installing Python packages with $("$PY" --version)…"
   "$PY" -m venv .venv
+  .venv/bin/python -m pip install -q --upgrade pip
+fi
+# (re)install when requirements.txt changed, e.g. after a git pull
+stamp="$(cksum requirements.txt)"
+if [ "$(cat .venv/.requirements 2>/dev/null)" != "$stamp" ]; then
+  echo "Installing Python packages…"
+  .venv/bin/python -m pip install -q --upgrade pip
   .venv/bin/pip install -q -r requirements.txt
   if command -v nvidia-smi >/dev/null 2>&1; then
     echo "NVIDIA GPU found: installing CUDA libraries (~1 GB)…"
     .venv/bin/pip install -q -r requirements-gpu.txt
   fi
+  echo "$stamp" > .venv/.requirements
+fi
+
+# macOS: when started from the .app, run a copy of Python that lives inside
+# the .app. The Dock takes the app's name and icon from the bundle the running
+# program is in, so otherwise it would show "Python".
+mac_app_python() {
+  local src lib abs host="$VT_APP_BUNDLE/Contents/MacOS/python" stamp="$VT_APP_BUNDLE/Contents/Resources/python.src"
+  src="$(.venv/bin/python -c 'import sys; print(sys.base_prefix + "/Resources/Python.app/Contents/MacOS/Python")')" || return 1
+  [ -f "$src" ] || return 1
+  if [ ! -x "$host" ] || [ "$(cat "$stamp" 2>/dev/null)" != "$src $(cksum < "$src")" ]; then
+    cp "$src" "$host.tmp" || return 1
+    # it finds the Python library by a relative path; make that absolute
+    lib="$(otool -L "$src" | awk '/@executable_path/ {print $1; exit}')"
+    if [ -n "$lib" ]; then
+      abs="$(cd "$(dirname "$src")/$(dirname "${lib#@executable_path/}")" && pwd)/$(basename "$lib")"
+      install_name_tool -change "$lib" "$abs" "$host.tmp" 2>/dev/null || return 1
+    fi
+    codesign -f -s - "$host.tmp" 2>/dev/null || return 1
+    mv "$host.tmp" "$host"
+    echo "$src $(cksum < "$src")" > "$stamp"
+  fi
+  __PYVENV_LAUNCHER__="$PWD/.venv/bin/python" "$host" -c "import webview" 2>/dev/null || return 1
+  echo "$host"
+}
+
+if [ "$OS" = Darwin ] && [ -n "${VT_APP_BUNDLE:-}" ] && host="$(mac_app_python)"; then
+  __PYVENV_LAUNCHER__="$PWD/.venv/bin/python" exec "$host" app.py
 fi
 exec .venv/bin/python app.py

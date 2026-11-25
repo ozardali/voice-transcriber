@@ -43,9 +43,9 @@ cd voice-transcriber
 ./start.sh
 ```
 
-The first start takes a few minutes. It creates a `.venv` folder and installs everything there. If it finds an NVIDIA card, it also installs the CUDA libraries (about 2 GB). After that, the app opens in your browser at http://127.0.0.1:7860.
+The first start takes a few minutes. It creates a `.venv` folder and installs everything there. If it finds an NVIDIA card, it also installs the CUDA libraries (about 2 GB). After that, the app opens in its own window. Close the window to stop it.
 
-To stop it, press `Ctrl+C` in the terminal.
+If the window can't open (for example, a library is missing on Linux), the app opens in your browser at http://127.0.0.1:7860 instead. Then press `Ctrl+C` in the terminal to stop it.
 
 ### Start it with one click
 
@@ -53,11 +53,11 @@ To stop it, press `Ctrl+C` in the terminal.
 ./install-shortcut.sh
 ```
 
-This adds a **Voice Transcriber** icon to your app menu and your desktop. On macOS it creates `~/Applications/Voice Transcriber.app`, which you can find with Spotlight or Launchpad, or drag to the Dock. Click it and the app starts in the background and opens in your browser. If the app is already running, the icon just opens the page again.
+This adds a **Voice Transcriber** icon to your app menu and your desktop. On macOS it creates `~/Applications/Voice Transcriber.app`, which you can find with Spotlight or Launchpad, or drag to the Dock. Click it and the app opens in its own window, with its own icon in the Dock or taskbar. If it's already running, the icon brings the window to the front.
 
 If Python or ffmpeg is still missing, the icon opens a terminal instead and runs `./start.sh` there, so it can ask before installing anything.
 
-When you start it this way there is no terminal, so use the **Quit** button on the page to stop it. The app writes its log to `app.log`.
+To stop it, close the window (or press `Cmd+Q` on a Mac). The app writes its log to `app.log`.
 
 If you move the folder, run `./install-shortcut.sh` again.
 
@@ -116,7 +116,8 @@ You can change these when you start the app:
 
 ```bash
 PORT=8000 ./start.sh        # use another port
-NO_BROWSER=1 ./start.sh     # don't open the browser
+NO_WINDOW=1 ./start.sh      # use the browser instead of an app window
+NO_BROWSER=1 ./start.sh     # only run the server, open nothing
 ```
 
 ## Good to know

@@ -1,3 +1,5 @@
 faster-whisper>=1.2
 flask>=3.0
 numpy
+pywebview>=5; sys_platform == "darwin"
+pywebview[qt]>=5; sys_platform == "linux"

@@ -22,11 +22,14 @@ if [ "$(uname -s)" = Darwin ]; then
   <key>CFBundleIconName</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleVersion</key><string>1</string>
-  <key>LSUIElement</key><true/>
 </dict>
 </plist>
 EOF
-  printf '#!/bin/bash\nexec "%s/launch.sh"\n' "$DIR" > "$APP/Contents/MacOS/launcher"
+  cat > "$APP/Contents/MacOS/launcher" <<EOF
+#!/bin/bash
+export VT_APP_BUNDLE="\$(cd "\$(dirname "\$0")/../.." && pwd)"
+exec "$DIR/launch.sh"
+EOF
   chmod +x "$APP/Contents/MacOS/launcher"
   touch "$APP"  # make Finder pick up the new icon
   echo "Added $APP (find it with Spotlight or Launchpad, or drag it to the Dock)."

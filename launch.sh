@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shortcut target: run in background, or just open the page if already up
+# shortcut target: start the app, or bring its window to the front if it's already running
 cd "$(dirname "$(readlink -f "$0")")"
 URL="http://127.0.0.1:${PORT:-7860}"
 OS="$(uname -s)"
@@ -35,7 +35,7 @@ open_terminal() {
 }
 
 if curl -fs -o /dev/null "$URL/api/models"; then
-  open_url "$URL"
+  curl -fs -o /dev/null -X POST -H "X-Voice-Transcriber: 1" "$URL/api/show" || open_url "$URL"
   exit 0
 fi
 
@@ -45,14 +45,9 @@ if ! ./start.sh --check >/dev/null 2>&1; then
   exit 0
 fi
 
-if [ -x .venv/bin/python ]; then
-  notify "Starting…"
-else
-  notify "First run: installing Python packages, this takes a few minutes…"
+if [ "$(cat .venv/.requirements 2>/dev/null)" != "$(cksum requirements.txt)" ]; then
+  notify "Installing Python packages, this takes a few minutes…"
 fi
-if command -v setsid >/dev/null 2>&1; then
-  setsid nohup ./start.sh >app.log 2>&1 </dev/null &
-else
-  nohup ./start.sh >app.log 2>&1 </dev/null &
-fi
-disown 2>/dev/null || true
+# exec, not background: on macOS this keeps the process tied to the .app,
+# so the Dock shows our name and icon
+exec ./start.sh >app.log 2>&1 </dev/null
