@@ -421,7 +421,7 @@ async function transcribe(job) {
   form.append("device", device);
   let data;
   try {
-    data = await fetch("/api/transcribe", { method: "POST", body: form }).then((r) => r.json());
+    data = await fetch("/api/transcribe", { method: "POST", body: form, headers: { "X-Voice-Transcriber": "1" } }).then((r) => r.json());
   } catch (e) {
     data = { error: "Could not reach the app. Is it still running?" };
   }

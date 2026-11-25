@@ -38,28 +38,26 @@ You don't have to install Python or ffmpeg yourself. If they're missing, `./star
 ## Getting started
 
 ```bash
-git clone git@github.com:ozardali/voice-transcriber.git
+git clone https://github.com/ozardali/voice-transcriber.git
 cd voice-transcriber
 ./start.sh
 ```
 
-The first start takes a few minutes. It creates a `.venv` folder and installs everything there. If it finds an NVIDIA card, it also installs the CUDA libraries (about 2 GB). After that, the app opens in its own window. Close the window to stop it.
+The first start takes a few minutes. It creates a `.venv` folder and installs everything there. If it finds an NVIDIA card, it also installs the CUDA libraries (about 2 GB). It also asks if you want a **Voice Transcriber** icon in your apps and on your desktop. After that, the app opens in its own window. Close the window to stop it.
+
+Later, just run `./start.sh` again, or click the icon.
 
 If the window can't open (for example, a library is missing on Linux), the app opens in your browser at http://127.0.0.1:7860 instead. Then press `Ctrl+C` in the terminal to stop it.
 
-### Start it with one click
+### The app icon
 
-```bash
-./install-shortcut.sh
-```
-
-This adds a **Voice Transcriber** icon to your app menu and your desktop. On macOS it creates `Voice Transcriber.app` in your Applications folder (or in `~/Applications` if you can't write there). Click it and the app opens in its own window, with its own icon in the Dock or taskbar. If it's already running, the icon brings the window to the front.
+If you said yes, `./start.sh` added a **Voice Transcriber** icon to your app menu and your desktop. On macOS it creates `Voice Transcriber.app` in your Applications folder (or in `~/Applications` if you can't write there). Click it and the app opens in its own window, with its own icon in the Dock or taskbar. If it's already running, the icon brings the window to the front.
 
 If Python or ffmpeg is still missing, the icon opens a terminal instead and runs `./start.sh` there, so it can ask before installing anything.
 
 To stop it, close the window (or press `Cmd+Q` on a Mac). The app writes its log to `app.log`.
 
-If you move the folder, run `./install-shortcut.sh` again.
+If you move the folder, run `./start.sh` once and it updates the icon. If you said no and want the icon after all, delete `.venv/.no-shortcut` and run `./start.sh`.
 
 ## The models
 
@@ -103,12 +101,11 @@ The CUDA libraries go into `.venv` only. You don't need to install CUDA on your 
 |---|---|
 | `app.py` | The server. It decodes the audio and runs the model. |
 | `static/index.html` | The web page (plain HTML, CSS and JavaScript). |
-| `start.sh` | Installs on the first run, then starts the app in the terminal. |
-| `launch.sh` | Starts the app in the background. The desktop icon uses this. |
-| `install-shortcut.sh` | Adds the icon to your app menu and desktop. |
+| `start.sh` | The only script you run. It installs what's missing, adds the icon and starts the app. The icon runs it as `start.sh --launch`. |
 | `assets/` | The app icon. `AppIcon.icon` is the layered macOS version (light, dark, tinted and clear), `icon.svg` is for Linux. After changing the design, run `assets/build-icons.sh` (macOS with Xcode) to rebuild `Assets.car` and `icon.icns`. |
 | `requirements.txt` | Python packages. |
 | `requirements-gpu.txt` | Extra packages for NVIDIA GPUs. |
+| `LICENSE` | MIT license. |
 
 ## Settings
 
@@ -130,3 +127,7 @@ NO_BROWSER=1 ./start.sh     # only run the server, open nothing
 
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper) for speech to text
 - [Flask](https://flask.palletsprojects.com/) for the small web server
+
+## License
+
+MIT. See [LICENSE](LICENSE).

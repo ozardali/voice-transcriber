@@ -148,6 +148,9 @@ def models():
 
 @app.post("/api/transcribe")
 def api_transcribe():
+    # custom header forces a CORS preflight, so other sites can't send files here
+    if request.headers.get("X-Voice-Transcriber") != "1":
+        return jsonify({"error": "Forbidden"}), 403
     upload = request.files.get("file")
     key = request.form.get("model", DEFAULT_MODEL)
     want = request.form.get("device", "gpu")
@@ -202,7 +205,7 @@ _window = {"win": None}
 
 @app.post("/api/show")
 def api_show():
-    # used by launch.sh when the app is already running
+    # used by "start.sh --launch" when the app is already running
     if request.headers.get("X-Voice-Transcriber") != "1":
         return jsonify({"error": "Forbidden"}), 403
     win = _window["win"]

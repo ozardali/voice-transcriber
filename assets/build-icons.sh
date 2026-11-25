@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Rebuilds the compiled icon files in assets/. Needs macOS with Xcode installed.
 # Only run this after changing the design: the outputs are committed, so
-# install-shortcut.sh works without Xcode.
+# start.sh can add the app icon without Xcode.
 #
 #   AppIcon.icon/  layered icon (edit in Icon Composer)  -> Assets.car  (macOS 26+)
 #   icon.svg       flat icon, used as is on Linux         -> icon.icns   (older macOS)
