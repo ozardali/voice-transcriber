@@ -35,8 +35,17 @@ open_terminal() {
 }
 
 if curl -fs -o /dev/null "$URL/api/models"; then
-  curl -fs -o /dev/null -X POST -H "X-Voice-Transcriber: 1" "$URL/api/show" || open_url "$URL"
-  exit 0
+  code="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "X-Voice-Transcriber: 1" "$URL/api/show")"
+  case "$code" in
+    200) exit 0 ;;  # window brought to the front
+    404)            # an older version without an app window: stop it, start this one
+      curl -fs -o /dev/null -X POST -H "X-Voice-Transcriber: 1" "$URL/api/quit"
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        curl -fs -o /dev/null "$URL/api/models" || break
+        sleep 0.5
+      done ;;
+    *) open_url "$URL"; exit 0 ;;  # running in browser mode
+  esac
 fi
 
 if ! ./start.sh --check >/dev/null 2>&1; then

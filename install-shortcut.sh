@@ -4,7 +4,14 @@ set -e
 DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 
 if [ "$(uname -s)" = Darwin ]; then
-  APP="$HOME/Applications/Voice Transcriber.app"
+  # /Applications shows up in Finder's Applications list; ~/Applications
+  # is the fallback when it isn't writable. Remove a copy in the other place.
+  NAME="Voice Transcriber.app"
+  if [ -w /Applications ]; then
+    APP="/Applications/$NAME"; rm -rf "$HOME/Applications/$NAME"
+  else
+    APP="$HOME/Applications/$NAME"
+  fi
   rm -rf "$APP"
   mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
   # Assets.car: layered icon for macOS 26+ (dark, tinted, clear); icon.icns: older macOS
@@ -32,7 +39,7 @@ exec "$DIR/launch.sh"
 EOF
   chmod +x "$APP/Contents/MacOS/launcher"
   touch "$APP"  # make Finder pick up the new icon
-  echo "Added $APP (find it with Spotlight or Launchpad, or drag it to the Dock)."
+  echo "Added $APP (find it in Applications, Spotlight or Launchpad, or drag it to the Dock)."
 
   if [ -d "$HOME/Desktop" ]; then
     ln -sfn "$APP" "$HOME/Desktop/Voice Transcriber"

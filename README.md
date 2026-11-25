@@ -53,7 +53,7 @@ If the window can't open (for example, a library is missing on Linux), the app o
 ./install-shortcut.sh
 ```
 
-This adds a **Voice Transcriber** icon to your app menu and your desktop. On macOS it creates `~/Applications/Voice Transcriber.app`, which you can find with Spotlight or Launchpad, or drag to the Dock. Click it and the app opens in its own window, with its own icon in the Dock or taskbar. If it's already running, the icon brings the window to the front.
+This adds a **Voice Transcriber** icon to your app menu and your desktop. On macOS it creates `Voice Transcriber.app` in your Applications folder (or in `~/Applications` if you can't write there). Click it and the app opens in its own window, with its own icon in the Dock or taskbar. If it's already running, the icon brings the window to the front.
 
 If Python or ffmpeg is still missing, the icon opens a terminal instead and runs `./start.sh` there, so it can ask before installing anything.
 
